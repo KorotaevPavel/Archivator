@@ -1,0 +1,2509 @@
+abc.txt
+73518
+
+415,187 Members | 2,866 Online	
+Join Now login
+Bytes IT Community	
+
+search
++ Ask Question
+Home Questions Articles Browse Topics Latest Top Members FAQ
+home > topics > c / c++ > questions > reading from "unknown" number and names of files using fstream
++ Ask a Question Need help? Post your question and get tips & solutions from a community of 415,187 IT Pros & Developers. It's quick & easy.
+reading from "unknown" number and names of files using fstream
+
+ jccorreu@gmail.com
+P: n/a
+jccorreu
+I've got to read info from multiple files that will be given to me. I
+know the format and what the data is. The thing is each time we run
+the program we may be using a differnt number of files, with different
+file names each time. So i'm writing into the code to ask the user how
+many files, and what their names are. From each we'll read in 2 lines,
+then do some math using all of those lines. Then do it again on another
+set of lines. I'm having some trouble creating different objects with
+different names when I don't know before hand how many there will be or
+what the file names will be. I know the following code won't work but
+it might give an idea of what I'm thinking.
+
+int num;
+std::cout << "enter number of files: ";
+std::cin >> num;
+char* infile[num+1];
+
+for(int n=1; n<=num; n++)
+{
+std::cout << "\nenter name of file " << n << " : ";
+std::cin >> infile[n];
+std::ifstream infile[n];
+infile[n].open(infile[n]);
+}
+
+Anyone got any idea how to create variables whose names are themselves
+variable by the program? It's something an old macro language I used
+to know could do, but I don't yet see a way to manipulate c++ into it.
+how could I force the creation of the ifstream object to take its name
+from such a variable, or from an element of an array?
+should I be using pointers in a different way?
+would I have to somehow overload the fstream::open() function?
+any other methods are also welcome, doesn't have to be fstream if there
+is something else. though this is some kind of process that I'd like
+to make more general and applicable for other uses.
+
+thanks all
+James
+
+Apr 30 '06 #1
+Post Reply
+Share this Question
+  Share on Google+ 
+7 Replies
+I V
+P: n/a
+I V
+On Sat, 29 Apr 2006 17:00:56 -0700, jccorreu@gmail.com wrote:
+Anyone got any idea how to create variables whose names are themselves
+variable by the program?
+
+
+You can't do that. What you can do is create one variable, with one
+name, that contains a number of objects. A std::vector is one choice to
+use here, although putting ifstream objects in a vector is a little
+tricky. Do you actually need to have all the files open at the same time,
+though? If you don't, you could open each file in turn:
+
+#include <string>
+#include <fstream>
+#include <iostream>
+
+int main()
+{
+int n_files;
+
+std::cout << "How many files to open: ";
+std::cin >> n_files;
+std::cin.ignore(); // Ignore the carriage-return
+
+for( int i = 0; i < n_files; ++i ) {
+std::string filename;
+
+std::cout << "File " << i << ": ";
+std::getline(std::cin, filename);
+std::ifstream infile(filename.c_str());
+// Read in the lines and do the calculations here
+...
+}
+}
+
+Apr 30 '06 #2
+jccorreu@gmail.com
+P: n/a
+jccorreu
+Ok I do not know what a vector class is in c++. I'm familiar with the
+math/physics concept fo a vector.
+The reason for the 2 lines from each file is I have to do a linear
+interpolation to arrive at a predetermined "average", that will also be
+the same "average" that I'll be seeking for my linear interpolation of
+the pairs of lines from all the files. This is so I can make a
+standardized data for my calculations. From this I would then be do a
+mathematical calculation that uses all those "averages". I can't do the
+calc until i get the data from all files. It is very important to keep
+straight which is which, becuase of where they go in the equation. I
+dont' really need to know the names of the files, I just thought of
+that as a scheme for keeping the data straight. The data files are not
+large, no more than 1000 records usually, so i could bring them in
+completely.
+I see no reason why I couldn't use a control file containing the names
+of the files, or also make it command line, instead of actually asking,
+but any way it will be unknown until run-time how many there are and
+what their names would be, and that is the real problem I'm having.
+I don't know any longer, but concerning memory space and running time,
+what is more efficient, opening and closing files repeatedly when they
+are needed, or opening them and simply reading each time through then
+closing at the end, or bringing a few thousand records in?
+i don't see how I could keep the data striaght with what you're
+suggetsing.. though maybe i could make a 2d array...and in the end let
+you know what I wind up doing.
+thanks
+
+May 2 '06 #3
+Jonathan Mcdougall
+P: n/a
+Jonathan Mcdougall
+jccorreu@gmail.com wrote:
+I've got to read info from multiple files that will be given to me. I
+know the format and what the data is. The thing is each time we run
+the program we may be using a differnt number of files, with different
+file names each time. So i'm writing into the code to ask the user how
+many files, and what their names are. From each we'll read in 2 lines,
+then do some math using all of those lines. Then do it again on another
+set of lines. I'm having some trouble creating different objects with
+different names when I don't know before hand how many there will be or
+what the file names will be. I know the following code won't work but
+it might give an idea of what I'm thinking.
+
+int num;
+std::cout << "enter number of files: ";
+std::cin >> num;
+char* infile[num+1];
+
+for(int n=1; n<=num; n++)
+{
+std::cout << "\nenter name of file " << n << " : ";
+std::cin >> infile[n]; 
+This will input a single character, probably not what you want.
+std::ifstream infile[n];
+infile[n].open(infile[n]);
+}
+
+
+# include <iostream>
+# include <fstream>
+# include <string>
+
+class parse_exception {};
+
+void parse(const std::string& fn)
+{
+std::ifstream ifs(fn.c_str());
+if (!ifs)
+throw parse_exception();
+
+std::string line1, line2;
+getline(ifs, line1);
+getline(ifs, line2);
+
+// use line1 and line2
+}
+
+int main()
+{
+while (true)
+{
+std::string fn;
+getline(std::cin, fn);
+
+if (fn == "")
+break;
+
+parse(fn);
+}
+}
+
+If you want to ask the file names first and then parse them, you could
+use a vector (or any container):
+
+# include <vector>
+# include <iostream>
+# include <string>
+
+void parse(const std::string& fn);
+
+int main()
+{
+typedef std::vector<std::string> fn_container;
+fn_container c;
+
+while (true)
+{
+std::string fn;
+getline(std::cin, fn);
+
+if (fn == "")
+break;
+
+c.push_back(fn);
+}
+
+std::for_each(c.begin(), c.end(), parse);
+}
+Jonathan
+
+May 2 '06 #4
+Jonathan Mcdougall
+P: n/a
+Jonathan Mcdougall
+Jonathan Mcdougall wrote:
+jccorreu@gmail.com wrote:
+I've got to read info from multiple files that will be given to me. I
+know the format and what the data is. The thing is each time we run
+the program we may be using a differnt number of files, with different
+file names each time. So i'm writing into the code to ask the user how
+many files, and what their names are. From each we'll read in 2 lines,
+then do some math using all of those lines. Then do it again on another
+set of lines. I'm having some trouble creating different objects with
+different names when I don't know before hand how many there will be or
+what the file names will be. I know the following code won't work but
+it might give an idea of what I'm thinking.
+
+int num;
+std::cout << "enter number of files: ";
+std::cin >> num;
+char* infile[num+1]; 
+Illegal, the size of an array must be a compile-time constant.
+for(int n=1; n<=num; n++) 
+Undefined behavior, because infile[num] does not exist (arrays are
+0-based in C++).
+{
+std::cout << "\nenter name of file " << n << " : ";
+std::cin >> infile[n];
+
+
+This will input a single character, probably not what you want.
+
+
+Well that's plain wrong, but it still won't work because you are using
+a pointer to a char which points to garbage.
+Jonathan
+
+May 2 '06 #5
+Lyell Haynes
+P: n/a
+Lyell Haynes
+> Anyone got any idea how to create variables whose names are themselves
+variable by the program? It's something an old macro language I used
+to know could do, but I don't yet see a way to manipulate c++ into it.
+how could I force the creation of the ifstream object to take its name
+from such a variable, or from an element of an array?
+
+
+You can't create variables whose names are themselves variables, but
+you can create a std::map that stores key->value pairs. Why not put a
+pointer to each open file into the map with the name of the file as a
+key?
+
+If the number of files you need to have open at one time is too large,
+then you could just read in all the file data into internal data
+structures and store those in the map. If you want to avoid copying the
+data when putting it in the map, store pointers.
+
+May 2 '06 #6
+Jonathan Mcdougall
+P: n/a
+Jonathan Mcdougall
+Lyell Haynes wrote:
+Anyone got any idea how to create variables whose names are themselves
+variable by the program? It's something an old macro language I used
+to know could do, but I don't yet see a way to manipulate c++ into it.
+how could I force the creation of the ifstream object to take its name
+from such a variable, or from an element of an array?
+You can't create variables whose names are themselves variables, but
+you can create a std::map that stores key->value pairs. Why not put a
+pointer to each open file into the map with the name of the file as a
+key?
+
+
+That would be a mess. Since streams are not copyable, you would need to
+allocate them on the heap. IMO, it makes no sense having a map of
+heap-allocated streams just for the sake of reading them after.
+If the number of files you need to have open at one time is too large,
+then you could just read in all the file data into internal data
+structures and store those in the map. If you want to avoid copying the
+data when putting it in the map, store pointers.
+
+
+That would be a lot better.
+Jonathan
+
+May 2 '06 #7
+Lyell Haynes
+P: n/a
+Lyell Haynes
+> That would be a mess. Since streams are not copyable, you would need to
+allocate them on the heap. IMO, it makes no sense having a map of
+heap-allocated streams just for the sake of reading them after.
+
+
+I'm not sure how it would be a mess. It makes perfect sense if the file
+data is too large to read in all at once and store in memory. If I have
+100 files that I need to iterate through, reading a few lines from each
+at a time and each file is a few hundred megabytes in size, keeping
+pointers to the open files sounds good to me. The other option is to
+constantly open and close each file before and after each read. If that
+works for the situation, hey, that's cool too.
+
+Since the original poster is only dealing with small files, reading in
+all the data from all the files first is probably the easiest solution
+to manage.
+
+Lyell
+
+May 2 '06 #8
+This discussion thread is closed
+Start new discussion
+Replies have been disabled for this discussion.
+
+
+
+Browse more C / C++ Questions on Bytes
+
+
+Question stats
+viewed: 2759
+replies: 7
+date asked: Apr 30 '06
+Follow this discussion
+Similar topics
+Reading unknown number of strings from a file using C#
+Reading unknown number of variables with sscanf
+Create an Unknown Number of ArrayLists
+typeof operator returns "unknown" instead of "undefined"
+Executing "unknown" command line in C#
+WARNING: column "footype" has type "unknown"
+Variations in "Jet" DB engines etc and "Unknown" error!
+Input validation for "unknown" field names
+"unknown protocol" error in httplib using HTTPS
+BYTES.COM © 2015 
+Formerly "TheScripts.com" from 2005-2008 
+About Bytes | Advertise on Bytes | Contact Us 
+Sitemap | C / C++ Answers Sitemap | C / C++ Insights Sitemap Follow us on Google Plus for the Latest Bytes Updates. Follow us on Twitter for the latest Bytes updates. Follow us on Facebook for the latest Bytes updates. 
+Follow us to get the Latest Bytes Updates
+
+415,187 Members | 2,866 Online	
+Join Now login
+Bytes IT Community	
+
+search
++ Ask Question
+Home Questions Articles Browse Topics Latest Top Members FAQ
+home > topics > c / c++ > questions > reading from "unknown" number and names of files using fstream
++ Ask a Question Need help? Post your question and get tips & solutions from a community of 415,187 IT Pros & Developers. It's quick & easy.
+reading from "unknown" number and names of files using fstream
+
+ jccorreu@gmail.com
+P: n/a
+jccorreu
+I've got to read info from multiple files that will be given to me. I
+know the format and what the data is. The thing is each time we run
+the program we may be using a differnt number of files, with different
+file names each time. So i'm writing into the code to ask the user how
+many files, and what their names are. From each we'll read in 2 lines,
+then do some math using all of those lines. Then do it again on another
+set of lines. I'm having some trouble creating different objects with
+different names when I don't know before hand how many there will be or
+what the file names will be. I know the following code won't work but
+it might give an idea of what I'm thinking.
+
+int num;
+std::cout << "enter number of files: ";
+std::cin >> num;
+char* infile[num+1];
+
+for(int n=1; n<=num; n++)
+{
+std::cout << "\nenter name of file " << n << " : ";
+std::cin >> infile[n];
+std::ifstream infile[n];
+infile[n].open(infile[n]);
+}
+
+Anyone got any idea how to create variables whose names are themselves
+variable by the program? It's something an old macro language I used
+to know could do, but I don't yet see a way to manipulate c++ into it.
+how could I force the creation of the ifstream object to take its name
+from such a variable, or from an element of an array?
+should I be using pointers in a different way?
+would I have to somehow overload the fstream::open() function?
+any other methods are also welcome, doesn't have to be fstream if there
+is something else. though this is some kind of process that I'd like
+to make more general and applicable for other uses.
+
+thanks all
+James
+
+Apr 30 '06 #1
+Post Reply
+Share this Question
+  Share on Google+ 
+7 Replies
+I V
+P: n/a
+I V
+On Sat, 29 Apr 2006 17:00:56 -0700, jccorreu@gmail.com wrote:
+Anyone got any idea how to create variables whose names are themselves
+variable by the program?
+
+
+You can't do that. What you can do is create one variable, with one
+name, that contains a number of objects. A std::vector is one choice to
+use here, although putting ifstream objects in a vector is a little
+tricky. Do you actually need to have all the files open at the same time,
+though? If you don't, you could open each file in turn:
+
+#include <string>
+#include <fstream>
+#include <iostream>
+
+int main()
+{
+int n_files;
+
+std::cout << "How many files to open: ";
+std::cin >> n_files;
+std::cin.ignore(); // Ignore the carriage-return
+
+for( int i = 0; i < n_files; ++i ) {
+std::string filename;
+
+std::cout << "File " << i << ": ";
+std::getline(std::cin, filename);
+std::ifstream infile(filename.c_str());
+// Read in the lines and do the calculations here
+...
+}
+}
+
+Apr 30 '06 #2
+jccorreu@gmail.com
+P: n/a
+jccorreu
+Ok I do not know what a vector class is in c++. I'm familiar with the
+math/physics concept fo a vector.
+The reason for the 2 lines from each file is I have to do a linear
+interpolation to arrive at a predetermined "average", that will also be
+the same "average" that I'll be seeking for my linear interpolation of
+the pairs of lines from all the files. This is so I can make a
+standardized data for my calculations. From this I would then be do a
+mathematical calculation that uses all those "averages". I can't do the
+calc until i get the data from all files. It is very important to keep
+straight which is which, becuase of where they go in the equation. I
+dont' really need to know the names of the files, I just thought of
+that as a scheme for keeping the data straight. The data files are not
+large, no more than 1000 records usually, so i could bring them in
+completely.
+I see no reason why I couldn't use a control file containing the names
+of the files, or also make it command line, instead of actually asking,
+but any way it will be unknown until run-time how many there are and
+what their names would be, and that is the real problem I'm having.
+I don't know any longer, but concerning memory space and running time,
+what is more efficient, opening and closing files repeatedly when they
+are needed, or opening them and simply reading each time through then
+closing at the end, or bringing a few thousand records in?
+i don't see how I could keep the data striaght with what you're
+suggetsing.. though maybe i could make a 2d array...and in the end let
+you know what I wind up doing.
+thanks
+
+May 2 '06 #3
+Jonathan Mcdougall
+P: n/a
+Jonathan Mcdougall
+jccorreu@gmail.com wrote:
+I've got to read info from multiple files that will be given to me. I
+know the format and what the data is. The thing is each time we run
+the program we may be using a differnt number of files, with different
+file names each time. So i'm writing into the code to ask the user how
+many files, and what their names are. From each we'll read in 2 lines,
+then do some math using all of those lines. Then do it again on another
+set of lines. I'm having some trouble creating different objects with
+different names when I don't know before hand how many there will be or
+what the file names will be. I know the following code won't work but
+it might give an idea of what I'm thinking.
+
+int num;
+std::cout << "enter number of files: ";
+std::cin >> num;
+char* infile[num+1];
+
+for(int n=1; n<=num; n++)
+{
+std::cout << "\nenter name of file " << n << " : ";
+std::cin >> infile[n]; 
+This will input a single character, probably not what you want.
+std::ifstream infile[n];
+infile[n].open(infile[n]);
+}
+
+
+# include <iostream>
+# include <fstream>
+# include <string>
+
+class parse_exception {};
+
+void parse(const std::string& fn)
+{
+std::ifstream ifs(fn.c_str());
+if (!ifs)
+throw parse_exception();
+
+std::string line1, line2;
+getline(ifs, line1);
+getline(ifs, line2);
+
+// use line1 and line2
+}
+
+int main()
+{
+while (true)
+{
+std::string fn;
+getline(std::cin, fn);
+
+if (fn == "")
+break;
+
+parse(fn);
+}
+}
+
+If you want to ask the file names first and then parse them, you could
+use a vector (or any container):
+
+# include <vector>
+# include <iostream>
+# include <string>
+
+void parse(const std::string& fn);
+
+int main()
+{
+typedef std::vector<std::string> fn_container;
+fn_container c;
+
+while (true)
+{
+std::string fn;
+getline(std::cin, fn);
+
+if (fn == "")
+break;
+
+c.push_back(fn);
+}
+
+std::for_each(c.begin(), c.end(), parse);
+}
+Jonathan
+
+May 2 '06 #4
+Jonathan Mcdougall
+P: n/a
+Jonathan Mcdougall
+Jonathan Mcdougall wrote:
+jccorreu@gmail.com wrote:
+I've got to read info from multiple files that will be given to me. I
+know the format and what the data is. The thing is each time we run
+the program we may be using a differnt number of files, with different
+file names each time. So i'm writing into the code to ask the user how
+many files, and what their names are. From each we'll read in 2 lines,
+then do some math using all of those lines. Then do it again on another
+set of lines. I'm having some trouble creating different objects with
+different names when I don't know before hand how many there will be or
+what the file names will be. I know the following code won't work but
+it might give an idea of what I'm thinking.
+
+int num;
+std::cout << "enter number of files: ";
+std::cin >> num;
+char* infile[num+1]; 
+Illegal, the size of an array must be a compile-time constant.
+for(int n=1; n<=num; n++) 
+Undefined behavior, because infile[num] does not exist (arrays are
+0-based in C++).
+{
+std::cout << "\nenter name of file " << n << " : ";
+std::cin >> infile[n];
+
+
+This will input a single character, probably not what you want.
+
+
+Well that's plain wrong, but it still won't work because you are using
+a pointer to a char which points to garbage.
+Jonathan
+
+May 2 '06 #5
+Lyell Haynes
+P: n/a
+Lyell Haynes
+> Anyone got any idea how to create variables whose names are themselves
+variable by the program? It's something an old macro language I used
+to know could do, but I don't yet see a way to manipulate c++ into it.
+how could I force the creation of the ifstream object to take its name
+from such a variable, or from an element of an array?
+
+
+You can't create variables whose names are themselves variables, but
+you can create a std::map that stores key->value pairs. Why not put a
+pointer to each open file into the map with the name of the file as a
+key?
+
+If the number of files you need to have open at one time is too large,
+then you could just read in all the file data into internal data
+structures and store those in the map. If you want to avoid copying the
+data when putting it in the map, store pointers.
+
+May 2 '06 #6
+Jonathan Mcdougall
+P: n/a
+Jonathan Mcdougall
+Lyell Haynes wrote:
+Anyone got any idea how to create variables whose names are themselves
+variable by the program? It's something an old macro language I used
+to know could do, but I don't yet see a way to manipulate c++ into it.
+how could I force the creation of the ifstream object to take its name
+from such a variable, or from an element of an array?
+You can't create variables whose names are themselves variables, but
+you can create a std::map that stores key->value pairs. Why not put a
+pointer to each open file into the map with the name of the file as a
+key?
+
+
+That would be a mess. Since streams are not copyable, you would need to
+allocate them on the heap. IMO, it makes no sense having a map of
+heap-allocated streams just for the sake of reading them after.
+If the number of files you need to have open at one time is too large,
+then you could just read in all the file data into internal data
+structures and store those in the map. If you want to avoid copying the
+data when putting it in the map, store pointers.
+
+
+That would be a lot better.
+Jonathan
+
+May 2 '06 #7
+Lyell Haynes
+P: n/a
+Lyell Haynes
+> That would be a mess. Since streams are not copyable, you would need to
+allocate them on the heap. IMO, it makes no sense having a map of
+heap-allocated streams just for the sake of reading them after.
+
+
+I'm not sure how it would be a mess. It makes perfect sense if the file
+data is too large to read in all at once and store in memory. If I have
+100 files that I need to iterate through, reading a few lines from each
+at a time and each file is a few hundred megabytes in size, keeping
+pointers to the open files sounds good to me. The other option is to
+constantly open and close each file before and after each read. If that
+works for the situation, hey, that's cool too.
+
+Since the original poster is only dealing with small files, reading in
+all the data from all the files first is probably the easiest solution
+to manage.
+
+Lyell
+
+May 2 '06 #8
+This discussion thread is closed
+Start new discussion
+Replies have been disabled for this discussion.
+
+
+
+Browse more C / C++ Questions on Bytes
+
+
+Question stats
+viewed: 2759
+replies: 7
+date asked: Apr 30 '06
+Follow this discussion
+Similar topics
+Reading unknown number of strings from a file using C#
+Reading unknown number of variables with sscanf
+Create an Unknown Number of ArrayLists
+typeof operator returns "unknown" instead of "undefined"
+Executing "unknown" command line in C#
+WARNING: column "footype" has type "unknown"
+Variations in "Jet" DB engines etc and "Unknown" error!
+Input validation for "unknown" field names
+"unknown protocol" error in httplib using HTTPS
+BYTES.COM © 2015 
+Formerly "TheScripts.com" from 2005-2008 
+About Bytes | Advertise on Bytes | Contact Us 
+Sitemap | C / C++ Answers Sitemap | C / C++ Insights Sitemap Follow us on Google Plus for the Latest Bytes Updates. Follow us on Twitter for the latest Bytes updates. Follow us on Facebook for the latest Bytes updates. 
+Follow us to get the Latest Bytes Updates
+
+415,187 Members | 2,866 Online	
+Join Now login
+Bytes IT Community	
+
+search
++ Ask Question
+Home Questions Articles Browse Topics Latest Top Members FAQ
+home > topics > c / c++ > questions > reading from "unknown" number and names of files using fstream
++ Ask a Question Need help? Post your question and get tips & solutions from a community of 415,187 IT Pros & Developers. It's quick & easy.
+reading from "unknown" number and names of files using fstream
+
+ jccorreu@gmail.com
+P: n/a
+jccorreu
+I've got to read info from multiple files that will be given to me. I
+know the format and what the data is. The thing is each time we run
+the program we may be using a differnt number of files, with different
+file names each time. So i'm writing into the code to ask the user how
+many files, and what their names are. From each we'll read in 2 lines,
+then do some math using all of those lines. Then do it again on another
+set of lines. I'm having some trouble creating different objects with
+different names when I don't know before hand how many there will be or
+what the file names will be. I know the following code won't work but
+it might give an idea of what I'm thinking.
+
+int num;
+std::cout << "enter number of files: ";
+std::cin >> num;
+char* infile[num+1];
+
+for(int n=1; n<=num; n++)
+{
+std::cout << "\nenter name of file " << n << " : ";
+std::cin >> infile[n];
+std::ifstream infile[n];
+infile[n].open(infile[n]);
+}
+
+Anyone got any idea how to create variables whose names are themselves
+variable by the program? It's something an old macro language I used
+to know could do, but I don't yet see a way to manipulate c++ into it.
+how could I force the creation of the ifstream object to take its name
+from such a variable, or from an element of an array?
+should I be using pointers in a different way?
+would I have to somehow overload the fstream::open() function?
+any other methods are also welcome, doesn't have to be fstream if there
+is something else. though this is some kind of process that I'd like
+to make more general and applicable for other uses.
+
+thanks all
+James
+
+Apr 30 '06 #1
+Post Reply
+Share this Question
+  Share on Google+ 
+7 Replies
+I V
+P: n/a
+I V
+On Sat, 29 Apr 2006 17:00:56 -0700, jccorreu@gmail.com wrote:
+Anyone got any idea how to create variables whose names are themselves
+variable by the program?
+
+
+You can't do that. What you can do is create one variable, with one
+name, that contains a number of objects. A std::vector is one choice to
+use here, although putting ifstream objects in a vector is a little
+tricky. Do you actually need to have all the files open at the same time,
+though? If you don't, you could open each file in turn:
+
+#include <string>
+#include <fstream>
+#include <iostream>
+
+int main()
+{
+int n_files;
+
+std::cout << "How many files to open: ";
+std::cin >> n_files;
+std::cin.ignore(); // Ignore the carriage-return
+
+for( int i = 0; i < n_files; ++i ) {
+std::string filename;
+
+std::cout << "File " << i << ": ";
+std::getline(std::cin, filename);
+std::ifstream infile(filename.c_str());
+// Read in the lines and do the calculations here
+...
+}
+}
+
+Apr 30 '06 #2
+jccorreu@gmail.com
+P: n/a
+jccorreu
+Ok I do not know what a vector class is in c++. I'm familiar with the
+math/physics concept fo a vector.
+The reason for the 2 lines from each file is I have to do a linear
+interpolation to arrive at a predetermined "average", that will also be
+the same "average" that I'll be seeking for my linear interpolation of
+the pairs of lines from all the files. This is so I can make a
+standardized data for my calculations. From this I would then be do a
+mathematical calculation that uses all those "averages". I can't do the
+calc until i get the data from all files. It is very important to keep
+straight which is which, becuase of where they go in the equation. I
+dont' really need to know the names of the files, I just thought of
+that as a scheme for keeping the data straight. The data files are not
+large, no more than 1000 records usually, so i could bring them in
+completely.
+I see no reason why I couldn't use a control file containing the names
+of the files, or also make it command line, instead of actually asking,
+but any way it will be unknown until run-time how many there are and
+what their names would be, and that is the real problem I'm having.
+I don't know any longer, but concerning memory space and running time,
+what is more efficient, opening and closing files repeatedly when they
+are needed, or opening them and simply reading each time through then
+closing at the end, or bringing a few thousand records in?
+i don't see how I could keep the data striaght with what you're
+suggetsing.. though maybe i could make a 2d array...and in the end let
+you know what I wind up doing.
+thanks
+
+May 2 '06 #3
+Jonathan Mcdougall
+P: n/a
+Jonathan Mcdougall
+jccorreu@gmail.com wrote:
+I've got to read info from multiple files that will be given to me. I
+know the format and what the data is. The thing is each time we run
+the program we may be using a differnt number of files, with different
+file names each time. So i'm writing into the code to ask the user how
+many files, and what their names are. From each we'll read in 2 lines,
+then do some math using all of those lines. Then do it again on another
+set of lines. I'm having some trouble creating different objects with
+different names when I don't know before hand how many there will be or
+what the file names will be. I know the following code won't work but
+it might give an idea of what I'm thinking.
+
+int num;
+std::cout << "enter number of files: ";
+std::cin >> num;
+char* infile[num+1];
+
+for(int n=1; n<=num; n++)
+{
+std::cout << "\nenter name of file " << n << " : ";
+std::cin >> infile[n]; 
+This will input a single character, probably not what you want.
+std::ifstream infile[n];
+infile[n].open(infile[n]);
+}
+
+
+# include <iostream>
+# include <fstream>
+# include <string>
+
+class parse_exception {};
+
+void parse(const std::string& fn)
+{
+std::ifstream ifs(fn.c_str());
+if (!ifs)
+throw parse_exception();
+
+std::string line1, line2;
+getline(ifs, line1);
+getline(ifs, line2);
+
+// use line1 and line2
+}
+
+int main()
+{
+while (true)
+{
+std::string fn;
+getline(std::cin, fn);
+
+if (fn == "")
+break;
+
+parse(fn);
+}
+}
+
+If you want to ask the file names first and then parse them, you could
+use a vector (or any container):
+
+# include <vector>
+# include <iostream>
+# include <string>
+
+void parse(const std::string& fn);
+
+int main()
+{
+typedef std::vector<std::string> fn_container;
+fn_container c;
+
+while (true)
+{
+std::string fn;
+getline(std::cin, fn);
+
+if (fn == "")
+break;
+
+c.push_back(fn);
+}
+
+std::for_each(c.begin(), c.end(), parse);
+}
+Jonathan
+
+May 2 '06 #4
+Jonathan Mcdougall
+P: n/a
+Jonathan Mcdougall
+Jonathan Mcdougall wrote:
+jccorreu@gmail.com wrote:
+I've got to read info from multiple files that will be given to me. I
+know the format and what the data is. The thing is each time we run
+the program we may be using a differnt number of files, with different
+file names each time. So i'm writing into the code to ask the user how
+many files, and what their names are. From each we'll read in 2 lines,
+then do some math using all of those lines. Then do it again on another
+set of lines. I'm having some trouble creating different objects with
+different names when I don't know before hand how many there will be or
+what the file names will be. I know the following code won't work but
+it might give an idea of what I'm thinking.
+
+int num;
+std::cout << "enter number of files: ";
+std::cin >> num;
+char* infile[num+1]; 
+Illegal, the size of an array must be a compile-time constant.
+for(int n=1; n<=num; n++) 
+Undefined behavior, because infile[num] does not exist (arrays are
+0-based in C++).
+{
+std::cout << "\nenter name of file " << n << " : ";
+std::cin >> infile[n];
+
+
+This will input a single character, probably not what you want.
+
+
+Well that's plain wrong, but it still won't work because you are using
+a pointer to a char which points to garbage.
+Jonathan
+
+May 2 '06 #5
+Lyell Haynes
+P: n/a
+Lyell Haynes
+> Anyone got any idea how to create variables whose names are themselves
+variable by the program? It's something an old macro language I used
+to know could do, but I don't yet see a way to manipulate c++ into it.
+how could I force the creation of the ifstream object to take its name
+from such a variable, or from an element of an array?
+
+
+You can't create variables whose names are themselves variables, but
+you can create a std::map that stores key->value pairs. Why not put a
+pointer to each open file into the map with the name of the file as a
+key?
+
+If the number of files you need to have open at one time is too large,
+then you could just read in all the file data into internal data
+structures and store those in the map. If you want to avoid copying the
+data when putting it in the map, store pointers.
+
+May 2 '06 #6
+Jonathan Mcdougall
+P: n/a
+Jonathan Mcdougall
+Lyell Haynes wrote:
+Anyone got any idea how to create variables whose names are themselves
+variable by the program? It's something an old macro language I used
+to know could do, but I don't yet see a way to manipulate c++ into it.
+how could I force the creation of the ifstream object to take its name
+from such a variable, or from an element of an array?
+You can't create variables whose names are themselves variables, but
+you can create a std::map that stores key->value pairs. Why not put a
+pointer to each open file into the map with the name of the file as a
+key?
+
+
+That would be a mess. Since streams are not copyable, you would need to
+allocate them on the heap. IMO, it makes no sense having a map of
+heap-allocated streams just for the sake of reading them after.
+If the number of files you need to have open at one time is too large,
+then you could just read in all the file data into internal data
+structures and store those in the map. If you want to avoid copying the
+data when putting it in the map, store pointers.
+
+
+That would be a lot better.
+Jonathan
+
+May 2 '06 #7
+Lyell Haynes
+P: n/a
+Lyell Haynes
+> That would be a mess. Since streams are not copyable, you would need to
+allocate them on the heap. IMO, it makes no sense having a map of
+heap-allocated streams just for the sake of reading them after.
+
+
+I'm not sure how it would be a mess. It makes perfect sense if the file
+data is too large to read in all at once and store in memory. If I have
+100 files that I need to iterate through, reading a few lines from each
+at a time and each file is a few hundred megabytes in size, keeping
+pointers to the open files sounds good to me. The other option is to
+constantly open and close each file before and after each read. If that
+works for the situation, hey, that's cool too.
+
+Since the original poster is only dealing with small files, reading in
+all the data from all the files first is probably the easiest solution
+to manage.
+
+Lyell
+
+May 2 '06 #8
+This discussion thread is closed
+Start new discussion
+Replies have been disabled for this discussion.
+
+
+
+Browse more C / C++ Questions on Bytes
+
+
+Question stats
+viewed: 2759
+replies: 7
+date asked: Apr 30 '06
+Follow this discussion
+Similar topics
+Reading unknown number of strings from a file using C#
+Reading unknown number of variables with sscanf
+Create an Unknown Number of ArrayLists
+typeof operator returns "unknown" instead of "undefined"
+Executing "unknown" command line in C#
+WARNING: column "footype" has type "unknown"
+Variations in "Jet" DB engines etc and "Unknown" error!
+Input validation for "unknown" field names
+"unknown protocol" error in httplib using HTTPS
+BYTES.COM © 2015 
+Formerly "TheScripts.com" from 2005-2008 
+About Bytes | Advertise on Bytes | Contact Us 
+Sitemap | C / C++ Answers Sitemap | C / C++ Insights Sitemap Follow us on Google Plus for the Latest Bytes Updates. Follow us on Twitter for the latest Bytes updates. Follow us on Facebook for the latest Bytes updates. 
+Follow us to get the Latest Bytes Updates
+
+415,187 Members | 2,866 Online	
+Join Now login
+Bytes IT Community	
+
+search
++ Ask Question
+Home Questions Articles Browse Topics Latest Top Members FAQ
+home > topics > c / c++ > questions > reading from "unknown" number and names of files using fstream
++ Ask a Question Need help? Post your question and get tips & solutions from a community of 415,187 IT Pros & Developers. It's quick & easy.
+reading from "unknown" number and names of files using fstream
+
+ jccorreu@gmail.com
+P: n/a
+jccorreu
+I've got to read info from multiple files that will be given to me. I
+know the format and what the data is. The thing is each time we run
+the program we may be using a differnt number of files, with different
+file names each time. So i'm writing into the code to ask the user how
+many files, and what their names are. From each we'll read in 2 lines,
+then do some math using all of those lines. Then do it again on another
+set of lines. I'm having some trouble creating different objects with
+different names when I don't know before hand how many there will be or
+what the file names will be. I know the following code won't work but
+it might give an idea of what I'm thinking.
+
+int num;
+std::cout << "enter number of files: ";
+std::cin >> num;
+char* infile[num+1];
+
+for(int n=1; n<=num; n++)
+{
+std::cout << "\nenter name of file " << n << " : ";
+std::cin >> infile[n];
+std::ifstream infile[n];
+infile[n].open(infile[n]);
+}
+
+Anyone got any idea how to create variables whose names are themselves
+variable by the program? It's something an old macro language I used
+to know could do, but I don't yet see a way to manipulate c++ into it.
+how could I force the creation of the ifstream object to take its name
+from such a variable, or from an element of an array?
+should I be using pointers in a different way?
+would I have to somehow overload the fstream::open() function?
+any other methods are also welcome, doesn't have to be fstream if there
+is something else. though this is some kind of process that I'd like
+to make more general and applicable for other uses.
+
+thanks all
+James
+
+Apr 30 '06 #1
+Post Reply
+Share this Question
+  Share on Google+ 
+7 Replies
+I V
+P: n/a
+I V
+On Sat, 29 Apr 2006 17:00:56 -0700, jccorreu@gmail.com wrote:
+Anyone got any idea how to create variables whose names are themselves
+variable by the program?
+
+
+You can't do that. What you can do is create one variable, with one
+name, that contains a number of objects. A std::vector is one choice to
+use here, although putting ifstream objects in a vector is a little
+tricky. Do you actually need to have all the files open at the same time,
+though? If you don't, you could open each file in turn:
+
+#include <string>
+#include <fstream>
+#include <iostream>
+
+int main()
+{
+int n_files;
+
+std::cout << "How many files to open: ";
+std::cin >> n_files;
+std::cin.ignore(); // Ignore the carriage-return
+
+for( int i = 0; i < n_files; ++i ) {
+std::string filename;
+
+std::cout << "File " << i << ": ";
+std::getline(std::cin, filename);
+std::ifstream infile(filename.c_str());
+// Read in the lines and do the calculations here
+...
+}
+}
+
+Apr 30 '06 #2
+jccorreu@gmail.com
+P: n/a
+jccorreu
+Ok I do not know what a vector class is in c++. I'm familiar with the
+math/physics concept fo a vector.
+The reason for the 2 lines from each file is I have to do a linear
+interpolation to arrive at a predetermined "average", that will also be
+the same "average" that I'll be seeking for my linear interpolation of
+the pairs of lines from all the files. This is so I can make a
+standardized data for my calculations. From this I would then be do a
+mathematical calculation that uses all those "averages". I can't do the
+calc until i get the data from all files. It is very important to keep
+straight which is which, becuase of where they go in the equation. I
+dont' really need to know the names of the files, I just thought of
+that as a scheme for keeping the data straight. The data files are not
+large, no more than 1000 records usually, so i could bring them in
+completely.
+I see no reason why I couldn't use a control file containing the names
+of the files, or also make it command line, instead of actually asking,
+but any way it will be unknown until run-time how many there are and
+what their names would be, and that is the real problem I'm having.
+I don't know any longer, but concerning memory space and running time,
+what is more efficient, opening and closing files repeatedly when they
+are needed, or opening them and simply reading each time through then
+closing at the end, or bringing a few thousand records in?
+i don't see how I could keep the data striaght with what you're
+suggetsing.. though maybe i could make a 2d array...and in the end let
+you know what I wind up doing.
+thanks
+
+May 2 '06 #3
+Jonathan Mcdougall
+P: n/a
+Jonathan Mcdougall
+jccorreu@gmail.com wrote:
+I've got to read info from multiple files that will be given to me. I
+know the format and what the data is. The thing is each time we run
+the program we may be using a differnt number of files, with different
+file names each time. So i'm writing into the code to ask the user how
+many files, and what their names are. From each we'll read in 2 lines,
+then do some math using all of those lines. Then do it again on another
+set of lines. I'm having some trouble creating different objects with
+different names when I don't know before hand how many there will be or
+what the file names will be. I know the following code won't work but
+it might give an idea of what I'm thinking.
+
+int num;
+std::cout << "enter number of files: ";
+std::cin >> num;
+char* infile[num+1];
+
+for(int n=1; n<=num; n++)
+{
+std::cout << "\nenter name of file " << n << " : ";
+std::cin >> infile[n]; 
+This will input a single character, probably not what you want.
+std::ifstream infile[n];
+infile[n].open(infile[n]);
+}
+
+
+# include <iostream>
+# include <fstream>
+# include <string>
+
+class parse_exception {};
+
+void parse(const std::string& fn)
+{
+std::ifstream ifs(fn.c_str());
+if (!ifs)
+throw parse_exception();
+
+std::string line1, line2;
+getline(ifs, line1);
+getline(ifs, line2);
+
+// use line1 and line2
+}
+
+int main()
+{
+while (true)
+{
+std::string fn;
+getline(std::cin, fn);
+
+if (fn == "")
+break;
+
+parse(fn);
+}
+}
+
+If you want to ask the file names first and then parse them, you could
+use a vector (or any container):
+
+# include <vector>
+# include <iostream>
+# include <string>
+
+void parse(const std::string& fn);
+
+int main()
+{
+typedef std::vector<std::string> fn_container;
+fn_container c;
+
+while (true)
+{
+std::string fn;
+getline(std::cin, fn);
+
+if (fn == "")
+break;
+
+c.push_back(fn);
+}
+
+std::for_each(c.begin(), c.end(), parse);
+}
+Jonathan
+
+May 2 '06 #4
+Jonathan Mcdougall
+P: n/a
+Jonathan Mcdougall
+Jonathan Mcdougall wrote:
+jccorreu@gmail.com wrote:
+I've got to read info from multiple files that will be given to me. I
+know the format and what the data is. The thing is each time we run
+the program we may be using a differnt number of files, with different
+file names each time. So i'm writing into the code to ask the user how
+many files, and what their names are. From each we'll read in 2 lines,
+then do some math using all of those lines. Then do it again on another
+set of lines. I'm having some trouble creating different objects with
+different names when I don't know before hand how many there will be or
+what the file names will be. I know the following code won't work but
+it might give an idea of what I'm thinking.
+
+int num;
+std::cout << "enter number of files: ";
+std::cin >> num;
+char* infile[num+1]; 
+Illegal, the size of an array must be a compile-time constant.
+for(int n=1; n<=num; n++) 
+Undefined behavior, because infile[num] does not exist (arrays are
+0-based in C++).
+{
+std::cout << "\nenter name of file " << n << " : ";
+std::cin >> infile[n];
+
+
+This will input a single character, probably not what you want.
+
+
+Well that's plain wrong, but it still won't work because you are using
+a pointer to a char which points to garbage.
+Jonathan
+
+May 2 '06 #5
+Lyell Haynes
+P: n/a
+Lyell Haynes
+> Anyone got any idea how to create variables whose names are themselves
+variable by the program? It's something an old macro language I used
+to know could do, but I don't yet see a way to manipulate c++ into it.
+how could I force the creation of the ifstream object to take its name
+from such a variable, or from an element of an array?
+
+
+You can't create variables whose names are themselves variables, but
+you can create a std::map that stores key->value pairs. Why not put a
+pointer to each open file into the map with the name of the file as a
+key?
+
+If the number of files you need to have open at one time is too large,
+then you could just read in all the file data into internal data
+structures and store those in the map. If you want to avoid copying the
+data when putting it in the map, store pointers.
+
+May 2 '06 #6
+Jonathan Mcdougall
+P: n/a
+Jonathan Mcdougall
+Lyell Haynes wrote:
+Anyone got any idea how to create variables whose names are themselves
+variable by the program? It's something an old macro language I used
+to know could do, but I don't yet see a way to manipulate c++ into it.
+how could I force the creation of the ifstream object to take its name
+from such a variable, or from an element of an array?
+You can't create variables whose names are themselves variables, but
+you can create a std::map that stores key->value pairs. Why not put a
+pointer to each open file into the map with the name of the file as a
+key?
+
+
+That would be a mess. Since streams are not copyable, you would need to
+allocate them on the heap. IMO, it makes no sense having a map of
+heap-allocated streams just for the sake of reading them after.
+If the number of files you need to have open at one time is too large,
+then you could just read in all the file data into internal data
+structures and store those in the map. If you want to avoid copying the
+data when putting it in the map, store pointers.
+
+
+That would be a lot better.
+Jonathan
+
+May 2 '06 #7
+Lyell Haynes
+P: n/a
+Lyell Haynes
+> That would be a mess. Since streams are not copyable, you would need to
+allocate them on the heap. IMO, it makes no sense having a map of
+heap-allocated streams just for the sake of reading them after.
+
+
+I'm not sure how it would be a mess. It makes perfect sense if the file
+data is too large to read in all at once and store in memory. If I have
+100 files that I need to iterate through, reading a few lines from each
+at a time and each file is a few hundred megabytes in size, keeping
+pointers to the open files sounds good to me. The other option is to
+constantly open and close each file before and after each read. If that
+works for the situation, hey, that's cool too.
+
+Since the original poster is only dealing with small files, reading in
+all the data from all the files first is probably the easiest solution
+to manage.
+
+Lyell
+
+May 2 '06 #8
+This discussion thread is closed
+Start new discussion
+Replies have been disabled for this discussion.
+
+
+
+Browse more C / C++ Questions on Bytes
+
+
+Question stats
+viewed: 2759
+replies: 7
+date asked: Apr 30 '06
+Follow this discussion
+Similar topics
+Reading unknown number of strings from a file using C#
+Reading unknown number of variables with sscanf
+Create an Unknown Number of ArrayLists
+typeof operator returns "unknown" instead of "undefined"
+Executing "unknown" command line in C#
+WARNING: column "footype" has type "unknown"
+Variations in "Jet" DB engines etc and "Unknown" error!
+Input validation for "unknown" field names
+"unknown protocol" error in httplib using HTTPS
+BYTES.COM © 2015 
+Formerly "TheScripts.com" from 2005-2008 
+About Bytes | Advertise on Bytes | Contact Us 
+Sitemap | C / C++ Answers Sitemap | C / C++ Insights Sitemap Follow us on Google Plus for the Latest Bytes Updates. Follow us on Twitter for the latest Bytes updates. Follow us on Facebook for the latest Bytes updates. 
+Follow us to get the Latest Bytes Updates
+
+415,187 Members | 2,866 Online	
+Join Now login
+Bytes IT Community	
+
+search
++ Ask Question
+Home Questions Articles Browse Topics Latest Top Members FAQ
+home > topics > c / c++ > questions > reading from "unknown" number and names of files using fstream
++ Ask a Question Need help? Post your question and get tips & solutions from a community of 415,187 IT Pros & Developers. It's quick & easy.
+reading from "unknown" number and names of files using fstream
+
+ jccorreu@gmail.com
+P: n/a
+jccorreu
+I've got to read info from multiple files that will be given to me. I
+know the format and what the data is. The thing is each time we run
+the program we may be using a differnt number of files, with different
+file names each time. So i'm writing into the code to ask the user how
+many files, and what their names are. From each we'll read in 2 lines,
+then do some math using all of those lines. Then do it again on another
+set of lines. I'm having some trouble creating different objects with
+different names when I don't know before hand how many there will be or
+what the file names will be. I know the following code won't work but
+it might give an idea of what I'm thinking.
+
+int num;
+std::cout << "enter number of files: ";
+std::cin >> num;
+char* infile[num+1];
+
+for(int n=1; n<=num; n++)
+{
+std::cout << "\nenter name of file " << n << " : ";
+std::cin >> infile[n];
+std::ifstream infile[n];
+infile[n].open(infile[n]);
+}
+
+Anyone got any idea how to create variables whose names are themselves
+variable by the program? It's something an old macro language I used
+to know could do, but I don't yet see a way to manipulate c++ into it.
+how could I force the creation of the ifstream object to take its name
+from such a variable, or from an element of an array?
+should I be using pointers in a different way?
+would I have to somehow overload the fstream::open() function?
+any other methods are also welcome, doesn't have to be fstream if there
+is something else. though this is some kind of process that I'd like
+to make more general and applicable for other uses.
+
+thanks all
+James
+
+Apr 30 '06 #1
+Post Reply
+Share this Question
+  Share on Google+ 
+7 Replies
+I V
+P: n/a
+I V
+On Sat, 29 Apr 2006 17:00:56 -0700, jccorreu@gmail.com wrote:
+Anyone got any idea how to create variables whose names are themselves
+variable by the program?
+
+
+You can't do that. What you can do is create one variable, with one
+name, that contains a number of objects. A std::vector is one choice to
+use here, although putting ifstream objects in a vector is a little
+tricky. Do you actually need to have all the files open at the same time,
+though? If you don't, you could open each file in turn:
+
+#include <string>
+#include <fstream>
+#include <iostream>
+
+int main()
+{
+int n_files;
+
+std::cout << "How many files to open: ";
+std::cin >> n_files;
+std::cin.ignore(); // Ignore the carriage-return
+
+for( int i = 0; i < n_files; ++i ) {
+std::string filename;
+
+std::cout << "File " << i << ": ";
+std::getline(std::cin, filename);
+std::ifstream infile(filename.c_str());
+// Read in the lines and do the calculations here
+...
+}
+}
+
+Apr 30 '06 #2
+jccorreu@gmail.com
+P: n/a
+jccorreu
+Ok I do not know what a vector class is in c++. I'm familiar with the
+math/physics concept fo a vector.
+The reason for the 2 lines from each file is I have to do a linear
+interpolation to arrive at a predetermined "average", that will also be
+the same "average" that I'll be seeking for my linear interpolation of
+the pairs of lines from all the files. This is so I can make a
+standardized data for my calculations. From this I would then be do a
+mathematical calculation that uses all those "averages". I can't do the
+calc until i get the data from all files. It is very important to keep
+straight which is which, becuase of where they go in the equation. I
+dont' really need to know the names of the files, I just thought of
+that as a scheme for keeping the data straight. The data files are not
+large, no more than 1000 records usually, so i could bring them in
+completely.
+I see no reason why I couldn't use a control file containing the names
+of the files, or also make it command line, instead of actually asking,
+but any way it will be unknown until run-time how many there are and
+what their names would be, and that is the real problem I'm having.
+I don't know any longer, but concerning memory space and running time,
+what is more efficient, opening and closing files repeatedly when they
+are needed, or opening them and simply reading each time through then
+closing at the end, or bringing a few thousand records in?
+i don't see how I could keep the data striaght with what you're
+suggetsing.. though maybe i could make a 2d array...and in the end let
+you know what I wind up doing.
+thanks
+
+May 2 '06 #3
+Jonathan Mcdougall
+P: n/a
+Jonathan Mcdougall
+jccorreu@gmail.com wrote:
+I've got to read info from multiple files that will be given to me. I
+know the format and what the data is. The thing is each time we run
+the program we may be using a differnt number of files, with different
+file names each time. So i'm writing into the code to ask the user how
+many files, and what their names are. From each we'll read in 2 lines,
+then do some math using all of those lines. Then do it again on another
+set of lines. I'm having some trouble creating different objects with
+different names when I don't know before hand how many there will be or
+what the file names will be. I know the following code won't work but
+it might give an idea of what I'm thinking.
+
+int num;
+std::cout << "enter number of files: ";
+std::cin >> num;
+char* infile[num+1];
+
+for(int n=1; n<=num; n++)
+{
+std::cout << "\nenter name of file " << n << " : ";
+std::cin >> infile[n]; 
+This will input a single character, probably not what you want.
+std::ifstream infile[n];
+infile[n].open(infile[n]);
+}
+
+
+# include <iostream>
+# include <fstream>
+# include <string>
+
+class parse_exception {};
+
+void parse(const std::string& fn)
+{
+std::ifstream ifs(fn.c_str());
+if (!ifs)
+throw parse_exception();
+
+std::string line1, line2;
+getline(ifs, line1);
+getline(ifs, line2);
+
+// use line1 and line2
+}
+
+int main()
+{
+while (true)
+{
+std::string fn;
+getline(std::cin, fn);
+
+if (fn == "")
+break;
+
+parse(fn);
+}
+}
+
+If you want to ask the file names first and then parse them, you could
+use a vector (or any container):
+
+# include <vector>
+# include <iostream>
+# include <string>
+
+void parse(const std::string& fn);
+
+int main()
+{
+typedef std::vector<std::string> fn_container;
+fn_container c;
+
+while (true)
+{
+std::string fn;
+getline(std::cin, fn);
+
+if (fn == "")
+break;
+
+c.push_back(fn);
+}
+
+std::for_each(c.begin(), c.end(), parse);
+}
+Jonathan
+
+May 2 '06 #4
+Jonathan Mcdougall
+P: n/a
+Jonathan Mcdougall
+Jonathan Mcdougall wrote:
+jccorreu@gmail.com wrote:
+I've got to read info from multiple files that will be given to me. I
+know the format and what the data is. The thing is each time we run
+the program we may be using a differnt number of files, with different
+file names each time. So i'm writing into the code to ask the user how
+many files, and what their names are. From each we'll read in 2 lines,
+then do some math using all of those lines. Then do it again on another
+set of lines. I'm having some trouble creating different objects with
+different names when I don't know before hand how many there will be or
+what the file names will be. I know the following code won't work but
+it might give an idea of what I'm thinking.
+
+int num;
+std::cout << "enter number of files: ";
+std::cin >> num;
+char* infile[num+1]; 
+Illegal, the size of an array must be a compile-time constant.
+for(int n=1; n<=num; n++) 
+Undefined behavior, because infile[num] does not exist (arrays are
+0-based in C++).
+{
+std::cout << "\nenter name of file " << n << " : ";
+std::cin >> infile[n];
+
+
+This will input a single character, probably not what you want.
+
+
+Well that's plain wrong, but it still won't work because you are using
+a pointer to a char which points to garbage.
+Jonathan
+
+May 2 '06 #5
+Lyell Haynes
+P: n/a
+Lyell Haynes
+> Anyone got any idea how to create variables whose names are themselves
+variable by the program? It's something an old macro language I used
+to know could do, but I don't yet see a way to manipulate c++ into it.
+how could I force the creation of the ifstream object to take its name
+from such a variable, or from an element of an array?
+
+
+You can't create variables whose names are themselves variables, but
+you can create a std::map that stores key->value pairs. Why not put a
+pointer to each open file into the map with the name of the file as a
+key?
+
+If the number of files you need to have open at one time is too large,
+then you could just read in all the file data into internal data
+structures and store those in the map. If you want to avoid copying the
+data when putting it in the map, store pointers.
+
+May 2 '06 #6
+Jonathan Mcdougall
+P: n/a
+Jonathan Mcdougall
+Lyell Haynes wrote:
+Anyone got any idea how to create variables whose names are themselves
+variable by the program? It's something an old macro language I used
+to know could do, but I don't yet see a way to manipulate c++ into it.
+how could I force the creation of the ifstream object to take its name
+from such a variable, or from an element of an array?
+You can't create variables whose names are themselves variables, but
+you can create a std::map that stores key->value pairs. Why not put a
+pointer to each open file into the map with the name of the file as a
+key?
+
+
+That would be a mess. Since streams are not copyable, you would need to
+allocate them on the heap. IMO, it makes no sense having a map of
+heap-allocated streams just for the sake of reading them after.
+If the number of files you need to have open at one time is too large,
+then you could just read in all the file data into internal data
+structures and store those in the map. If you want to avoid copying the
+data when putting it in the map, store pointers.
+
+
+That would be a lot better.
+Jonathan
+
+May 2 '06 #7
+Lyell Haynes
+P: n/a
+Lyell Haynes
+> That would be a mess. Since streams are not copyable, you would need to
+allocate them on the heap. IMO, it makes no sense having a map of
+heap-allocated streams just for the sake of reading them after.
+
+
+I'm not sure how it would be a mess. It makes perfect sense if the file
+data is too large to read in all at once and store in memory. If I have
+100 files that I need to iterate through, reading a few lines from each
+at a time and each file is a few hundred megabytes in size, keeping
+pointers to the open files sounds good to me. The other option is to
+constantly open and close each file before and after each read. If that
+works for the situation, hey, that's cool too.
+
+Since the original poster is only dealing with small files, reading in
+all the data from all the files first is probably the easiest solution
+to manage.
+
+Lyell
+
+May 2 '06 #8
+This discussion thread is closed
+Start new discussion
+Replies have been disabled for this discussion.
+
+
+
+Browse more C / C++ Questions on Bytes
+
+
+Question stats
+viewed: 2759
+replies: 7
+date asked: Apr 30 '06
+Follow this discussion
+Similar topics
+Reading unknown number of strings from a file using C#
+Reading unknown number of variables with sscanf
+Create an Unknown Number of ArrayLists
+typeof operator returns "unknown" instead of "undefined"
+Executing "unknown" command line in C#
+WARNING: column "footype" has type "unknown"
+Variations in "Jet" DB engines etc and "Unknown" error!
+Input validation for "unknown" field names
+"unknown protocol" error in httplib using HTTPS
+BYTES.COM © 2015 
+Formerly "TheScripts.com" from 2005-2008 
+About Bytes | Advertise on Bytes | Contact Us 
+Sitemap | C / C++ Answers Sitemap | C / C++ Insights Sitemap Follow us on Google Plus for the Latest Bytes Updates. Follow us on Twitter for the latest Bytes updates. Follow us on Facebook for the latest Bytes updates. 
+Follow us to get the Latest Bytes Updates
+
+415,187 Members | 2,866 Online	
+Join Now login
+Bytes IT Community	
+
+search
++ Ask Question
+Home Questions Articles Browse Topics Latest Top Members FAQ
+home > topics > c / c++ > questions > reading from "unknown" number and names of files using fstream
++ Ask a Question Need help? Post your question and get tips & solutions from a community of 415,187 IT Pros & Developers. It's quick & easy.
+reading from "unknown" number and names of files using fstream
+
+ jccorreu@gmail.com
+P: n/a
+jccorreu
+I've got to read info from multiple files that will be given to me. I
+know the format and what the data is. The thing is each time we run
+the program we may be using a differnt number of files, with different
+file names each time. So i'm writing into the code to ask the user how
+many files, and what their names are. From each we'll read in 2 lines,
+then do some math using all of those lines. Then do it again on another
+set of lines. I'm having some trouble creating different objects with
+different names when I don't know before hand how many there will be or
+what the file names will be. I know the following code won't work but
+it might give an idea of what I'm thinking.
+
+int num;
+std::cout << "enter number of files: ";
+std::cin >> num;
+char* infile[num+1];
+
+for(int n=1; n<=num; n++)
+{
+std::cout << "\nenter name of file " << n << " : ";
+std::cin >> infile[n];
+std::ifstream infile[n];
+infile[n].open(infile[n]);
+}
+
+Anyone got any idea how to create variables whose names are themselves
+variable by the program? It's something an old macro language I used
+to know could do, but I don't yet see a way to manipulate c++ into it.
+how could I force the creation of the ifstream object to take its name
+from such a variable, or from an element of an array?
+should I be using pointers in a different way?
+would I have to somehow overload the fstream::open() function?
+any other methods are also welcome, doesn't have to be fstream if there
+is something else. though this is some kind of process that I'd like
+to make more general and applicable for other uses.
+
+thanks all
+James
+
+Apr 30 '06 #1
+Post Reply
+Share this Question
+  Share on Google+ 
+7 Replies
+I V
+P: n/a
+I V
+On Sat, 29 Apr 2006 17:00:56 -0700, jccorreu@gmail.com wrote:
+Anyone got any idea how to create variables whose names are themselves
+variable by the program?
+
+
+You can't do that. What you can do is create one variable, with one
+name, that contains a number of objects. A std::vector is one choice to
+use here, although putting ifstream objects in a vector is a little
+tricky. Do you actually need to have all the files open at the same time,
+though? If you don't, you could open each file in turn:
+
+#include <string>
+#include <fstream>
+#include <iostream>
+
+int main()
+{
+int n_files;
+
+std::cout << "How many files to open: ";
+std::cin >> n_files;
+std::cin.ignore(); // Ignore the carriage-return
+
+for( int i = 0; i < n_files; ++i ) {
+std::string filename;
+
+std::cout << "File " << i << ": ";
+std::getline(std::cin, filename);
+std::ifstream infile(filename.c_str());
+// Read in the lines and do the calculations here
+...
+}
+}
+
+Apr 30 '06 #2
+jccorreu@gmail.com
+P: n/a
+jccorreu
+Ok I do not know what a vector class is in c++. I'm familiar with the
+math/physics concept fo a vector.
+The reason for the 2 lines from each file is I have to do a linear
+interpolation to arrive at a predetermined "average", that will also be
+the same "average" that I'll be seeking for my linear interpolation of
+the pairs of lines from all the files. This is so I can make a
+standardized data for my calculations. From this I would then be do a
+mathematical calculation that uses all those "averages". I can't do the
+calc until i get the data from all files. It is very important to keep
+straight which is which, becuase of where they go in the equation. I
+dont' really need to know the names of the files, I just thought of
+that as a scheme for keeping the data straight. The data files are not
+large, no more than 1000 records usually, so i could bring them in
+completely.
+I see no reason why I couldn't use a control file containing the names
+of the files, or also make it command line, instead of actually asking,
+but any way it will be unknown until run-time how many there are and
+what their names would be, and that is the real problem I'm having.
+I don't know any longer, but concerning memory space and running time,
+what is more efficient, opening and closing files repeatedly when they
+are needed, or opening them and simply reading each time through then
+closing at the end, or bringing a few thousand records in?
+i don't see how I could keep the data striaght with what you're
+suggetsing.. though maybe i could make a 2d array...and in the end let
+you know what I wind up doing.
+thanks
+
+May 2 '06 #3
+Jonathan Mcdougall
+P: n/a
+Jonathan Mcdougall
+jccorreu@gmail.com wrote:
+I've got to read info from multiple files that will be given to me. I
+know the format and what the data is. The thing is each time we run
+the program we may be using a differnt number of files, with different
+file names each time. So i'm writing into the code to ask the user how
+many files, and what their names are. From each we'll read in 2 lines,
+then do some math using all of those lines. Then do it again on another
+set of lines. I'm having some trouble creating different objects with
+different names when I don't know before hand how many there will be or
+what the file names will be. I know the following code won't work but
+it might give an idea of what I'm thinking.
+
+int num;
+std::cout << "enter number of files: ";
+std::cin >> num;
+char* infile[num+1];
+
+for(int n=1; n<=num; n++)
+{
+std::cout << "\nenter name of file " << n << " : ";
+std::cin >> infile[n]; 
+This will input a single character, probably not what you want.
+std::ifstream infile[n];
+infile[n].open(infile[n]);
+}
+
+
+# include <iostream>
+# include <fstream>
+# include <string>
+
+class parse_exception {};
+
+void parse(const std::string& fn)
+{
+std::ifstream ifs(fn.c_str());
+if (!ifs)
+throw parse_exception();
+
+std::string line1, line2;
+getline(ifs, line1);
+getline(ifs, line2);
+
+// use line1 and line2
+}
+
+int main()
+{
+while (true)
+{
+std::string fn;
+getline(std::cin, fn);
+
+if (fn == "")
+break;
+
+parse(fn);
+}
+}
+
+If you want to ask the file names first and then parse them, you could
+use a vector (or any container):
+
+# include <vector>
+# include <iostream>
+# include <string>
+
+void parse(const std::string& fn);
+
+int main()
+{
+typedef std::vector<std::string> fn_container;
+fn_container c;
+
+while (true)
+{
+std::string fn;
+getline(std::cin, fn);
+
+if (fn == "")
+break;
+
+c.push_back(fn);
+}
+
+std::for_each(c.begin(), c.end(), parse);
+}
+Jonathan
+
+May 2 '06 #4
+Jonathan Mcdougall
+P: n/a
+Jonathan Mcdougall
+Jonathan Mcdougall wrote:
+jccorreu@gmail.com wrote:
+I've got to read info from multiple files that will be given to me. I
+know the format and what the data is. The thing is each time we run
+the program we may be using a differnt number of files, with different
+file names each time. So i'm writing into the code to ask the user how
+many files, and what their names are. From each we'll read in 2 lines,
+then do some math using all of those lines. Then do it again on another
+set of lines. I'm having some trouble creating different objects with
+different names when I don't know before hand how many there will be or
+what the file names will be. I know the following code won't work but
+it might give an idea of what I'm thinking.
+
+int num;
+std::cout << "enter number of files: ";
+std::cin >> num;
+char* infile[num+1]; 
+Illegal, the size of an array must be a compile-time constant.
+for(int n=1; n<=num; n++) 
+Undefined behavior, because infile[num] does not exist (arrays are
+0-based in C++).
+{
+std::cout << "\nenter name of file " << n << " : ";
+std::cin >> infile[n];
+
+
+This will input a single character, probably not what you want.
+
+
+Well that's plain wrong, but it still won't work because you are using
+a pointer to a char which points to garbage.
+Jonathan
+
+May 2 '06 #5
+Lyell Haynes
+P: n/a
+Lyell Haynes
+> Anyone got any idea how to create variables whose names are themselves
+variable by the program? It's something an old macro language I used
+to know could do, but I don't yet see a way to manipulate c++ into it.
+how could I force the creation of the ifstream object to take its name
+from such a variable, or from an element of an array?
+
+
+You can't create variables whose names are themselves variables, but
+you can create a std::map that stores key->value pairs. Why not put a
+pointer to each open file into the map with the name of the file as a
+key?
+
+If the number of files you need to have open at one time is too large,
+then you could just read in all the file data into internal data
+structures and store those in the map. If you want to avoid copying the
+data when putting it in the map, store pointers.
+
+May 2 '06 #6
+Jonathan Mcdougall
+P: n/a
+Jonathan Mcdougall
+Lyell Haynes wrote:
+Anyone got any idea how to create variables whose names are themselves
+variable by the program? It's something an old macro language I used
+to know could do, but I don't yet see a way to manipulate c++ into it.
+how could I force the creation of the ifstream object to take its name
+from such a variable, or from an element of an array?
+You can't create variables whose names are themselves variables, but
+you can create a std::map that stores key->value pairs. Why not put a
+pointer to each open file into the map with the name of the file as a
+key?
+
+
+That would be a mess. Since streams are not copyable, you would need to
+allocate them on the heap. IMO, it makes no sense having a map of
+heap-allocated streams just for the sake of reading them after.
+If the number of files you need to have open at one time is too large,
+then you could just read in all the file data into internal data
+structures and store those in the map. If you want to avoid copying the
+data when putting it in the map, store pointers.
+
+
+That would be a lot better.
+Jonathan
+
+May 2 '06 #7
+Lyell Haynes
+P: n/a
+Lyell Haynes
+> That would be a mess. Since streams are not copyable, you would need to
+allocate them on the heap. IMO, it makes no sense having a map of
+heap-allocated streams just for the sake of reading them after.
+
+
+I'm not sure how it would be a mess. It makes perfect sense if the file
+data is too large to read in all at once and store in memory. If I have
+100 files that I need to iterate through, reading a few lines from each
+at a time and each file is a few hundred megabytes in size, keeping
+pointers to the open files sounds good to me. The other option is to
+constantly open and close each file before and after each read. If that
+works for the situation, hey, that's cool too.
+
+Since the original poster is only dealing with small files, reading in
+all the data from all the files first is probably the easiest solution
+to manage.
+
+Lyell
+
+May 2 '06 #8
+This discussion thread is closed
+Start new discussion
+Replies have been disabled for this discussion.
+
+
+
+Browse more C / C++ Questions on Bytes
+
+
+Question stats
+viewed: 2759
+replies: 7
+date asked: Apr 30 '06
+Follow this discussion
+Similar topics
+Reading unknown number of strings from a file using C#
+Reading unknown number of variables with sscanf
+Create an Unknown Number of ArrayLists
+typeof operator returns "unknown" instead of "undefined"
+Executing "unknown" command line in C#
+WARNING: column "footype" has type "unknown"
+Variations in "Jet" DB engines etc and "Unknown" error!
+Input validation for "unknown" field names
+"unknown protocol" error in httplib using HTTPS
+BYTES.COM © 2015 
+Formerly "TheScripts.com" from 2005-2008 
+About Bytes | Advertise on Bytes | Contact Us 
+Sitemap | C / C++ Answers Sitemap | C / C++ Insights Sitemap Follow us on Google Plus for the Latest Bytes Updates. Follow us on Twitter for the latest Bytes updates. Follow us on Facebook for the latest Bytes updates. 
+Follow us to get the Latest Bytes Updates
+read.txt
+4534
+The sample code included with this article (see Downloads) was written in Eclipse 3.1 using the C Development Tooling (CDT); the getopt_demo and getopt_long_demo projects are Managed Make projects, which are built using the CDT's program-generation rules. You won't find a Makefile in the project, but it's so trivial that you'll have no trouble generating one if you need to compile the code outside of Eclipse.
+The sample code included with this article (see Downloads) was written in Eclipse 3.1 using the C Development Tooling (CDT); the getopt_demo and getopt_long_demo projects are Managed Make projects, which are built using the CDT's program-generation rules. You won't find a Makefile in the project, but it's so trivial that you'll have no trouble generating one if you need to compile the code outside of Eclipse.The sample code included with this article (see Downloads) was written in Eclipse 3.1 using the C Development Tooling (CDT); the getopt_demo and getopt_long_demo projects are Managed Make projects, which are built using the CDT's program-generation rules. You won't find a Makefile in the project, but it's so trivial that you'll have no trouble generating one if you need to compile the code outside of Eclipse.The sample code included with this article (see Downloads) was written in Eclipse 3.1 using the C Development Tooling (CDT); the getopt_demo and getopt_long_demo projects are Managed Make projects, which are built using the CDT's program-generation rules. You won't find a Makefile in the project, but it's so trivial that you'll have no trouble generating one if you need to compile the code outside of Eclipse.The sample code included with this article (see Downloads) was written in Eclipse 3.1 using the C Development Tooling (CDT); the getopt_demo and getopt_long_demo projects are Managed Make projects, which are built using the CDT's program-generation rules. You won't find a Makefile in the project, but it's so trivial that you'll have no trouble generating one if you need to compile the code outside of Eclipse.The sample code included with this article (see Downloads) was written in Eclipse 3.1 using the C Development Tooling (CDT); the getopt_demo and getopt_long_demo projects are Managed Make projects, which are built using the CDT's program-generation rules. You won't find a Makefile in the project, but it's so trivial that you'll have no trouble generating one if you need to compile the code outside of Eclipse.The sample code included with this article (see Downloads) was written in Eclipse 3.1 using the C Development Tooling (CDT); the getopt_demo and getopt_long_demo projects are Managed Make projects, which are built using the CDT's program-generation rules. You won't find a Makefile in the project, but it's so trivial that you'll have no trouble generating one if you need to compile the code outside of Eclipse.The sample code included with this article (see Downloads) was written in Eclipse 3.1 using the C Development Tooling (CDT); the getopt_demo and getopt_long_demo projects are Managed Make projects, which are built using the CDT's program-generation rules. You won't find a Makefile in the project, but it's so trivial that you'll have no trouble generating one if you need to compile the code outside of Eclipse.The sample code included with this article (see Downloads) was written in Eclipse 3.1 using the C Development Tooling (CDT); the getopt_demo and getopt_long_demo projects are Managed Make projects, which are built using the CDT's program-generation rules. You won't find a Makefile in the project, but it's so trivial that you'll have no trouble generating one if you need to compile the code outside of Eclipse.The sample code included with this article (see Downloads) was written in Eclipse 3.1 using the C Development Tooling (CDT); the getopt_demo and getopt_long_demo projects are Managed Make projects, which are built using the CDT's program-generation rules. You won't find a Makefile in the project, but it's so trivial that you'll have no trouble generating one if you need to compile the code outside of Eclipse.The sample code included with this article (see Downloads) was written in Eclipse 3.1 using the C Development Tooling (CDT); the getopt_demo and getopt_long_demo projects are Managed Make projects, which are built using the CDT's program-generation rules. You won't find a Makefile in the project, but it's so trivial that you'll have no trouble generating one if you need to compile the code outside of Eclipse.test.txt
+23152
+IBM BluemixDevelop in the cloud at the click of a button!Start your free trial
+dW
+Sign in | Register
+IBM
+developerWorks®
+Technical topics
+Evaluation software
+Community
+Events
+Search developerWorks 
+Search developerWorks
+ Submit
+Print this pageE-mail this pageFacebookTwitterLinked InGoogle+
+developerWorksTechnical topicsAIX and UNIXTechnical library
+Command-line processing with getopt()
+Handling complex command lines the easy way
+All UNIX® programs, even those with graphical user interfaces (GUIs), accept and process command-line options. For some programs, this is the primary means of interacting with either other programs, or users. Having robust handling of complex command-line arguments makes your application better and more useful. And yet, many developers are spending their precious time writing their own command-line parsers instead of using getopt(), a library function designed specifically to ease the burden of command-line processing. Read on to learn how to use getopt() to record your command-line arguments in a global structure that can then be used throughout your program whenever appropriate.
+4 Comments
+Share:
+FacebookTwitterLinked InGoogle+
+Chris Herborth (chrish@pobox.com), Freelance Writer, Author
+02 May 2006
+Also available in Chinese Russian
++
+Table of contents
+
+Develop and deploy your next
+app on the IBM Bluemix
+cloud platform.
+Start your free trial
+Introduction
+Early in its evolution, the command-line environment of UNIX® (its only user interface back then) became dominated by dozens of small text-processing tools. These tools were small and generally did one thing well. The tools were chained together in longer command pipelines, one program passing its output to the next as input, and controlled by a variety of command-line options and arguments.
+This is one aspect of UNIX that makes it a supremely powerful environment for processing text-based data, one of its first uses in a corporate environment. Dump some text in one end of a command pipeline and retrieve processed output from the other end.
+Command-line options and arguments control UNIX programs and tell them how to behave. As a developer, it's your responsibility to discover the user's intentions from the command line passed to your program's main() function. This article shows you how to use the standard getopt() and getopt_long() functions to simplify your command-line processing, and it covers one technique for keeping track of your command-line options.
+Before you start
+The sample code included with this article (see Downloads) was written in Eclipse 3.1 using the C Development Tooling (CDT); the getopt_demo and getopt_long_demo projects are Managed Make projects, which are built using the CDT's program-generation rules. You won't find a Makefile in the project, but it's so trivial that you'll have no trouble generating one if you need to compile the code outside of Eclipse.
+If you haven't tried using Eclipse yet (see Resources), you should really give it a go -- it's an excellent integrated development environment (IDE) that just gets better with each release. And that's coming from a die-hard EMACS- and Makefile-based developer.
+Command lines
+When you're working on a new program, one of the first obstacles you'll face is what to do about the command-line arguments that control its behavior. These are passed from the command line to your program's main() function as an integer count (traditionally named argc) and an array of pointers to strings (traditionally named argv). The standard main() function can be declared in two different ways that are essentially the same, as shown in Listing 1.
+Listing 1. The main() function's double life
+int main( int argc, char *argv[] );
+int main( int argc, char **argv );
+The first one, with its array of pointers to char, seems to be more fashionable these days, and slightly less confusing than the second version, with its pointer to pointers to char. For some reason, I tend to use the second form more often, possibly to represent my hard-won victory over the C pointer learning curve way back in high school. For all intents and purposes, these are identical, so use whichever one appeals to you the most.
+When your main() is called by the C runtime library's program startup code, the command line has already been processed. The argc argument contains a count of arguments, and argv contains an array of pointers to those arguments. To the C runtime library, arguments are the program's name, and anything after the program's name should be separated by whitespace.
+For example, if you ran a program named foo with arguments of -v bar www.ibm.com, your argc would be set to 4, and argv would be set up as shown in Listing 2.
+Listing 2. argv's contents
+argv[0] - foo
+argv[1] - -v
+argv[2] - bar
+argv[3] - www.ibm.com
+A program has only one set of command-line arguments, so I'm going to store this information in a global structure that tracks options and settings. Anything that makes sense for the program to track globally can go in this structure, and I'm using a structure to help reduce the number of global variables. As I mentioned in my network services design article (see Resources), globals are bad for threaded programming, so it's a good idea to use them carefully.
+The sample code is going to show command-line processing for an imaginary doc2html program. The doc2html program translates some sort of document into HTML, controlled by the command-line options specified by the user. It supports the following options:
+-I -- Don't create a keyword index.
+-l lang -- Translate into the language specified using the language code, lang.
+-o outfile.html -- Write the translated document to outfile.html instead of printing to standard output.
+-v - - Be verbose while translating; can be specified multiple times to increase the diagnostic level.
+Additional file names will be used as input document.
+You'll also support -h and -? to print a help message that gives the user a reminder about these options.
+Simple command-line processing: getopt()
+The getopt() function, which lives in the unistd.h system header file, is shown in Listing 3:
+Listing 3. getopt() prototype
+int getopt( int argc, char *const argv[], const char *optstring );
+Given a number of command-line arguments (argc), an array of pointers to those arguments (argv), and an option string (optstring), getopt() returns the first option, and sets some global variables. When you call it again with the same arguments, it returns the next option, and sets the global variables. If no more recognized options are found, it returns -1 and you're done.
+The global variables set by getopt() include:
+optarg -- A pointer to the current option argument, if there is one.
+optind -- An index of the next argv pointer to process when getopt() is called again.
+optopt -- This is the last known option.
+The option string (optstring) is one character per option. Options that have arguments, such as the -l and -o options in the example, are followed by a : character. The optstring used by the example is Il:o:vh? (remember, you also want to support the last two options for printing the program's usage message).
+You call getopt() repeatedly until it returns -1; any remaining command-line arguments are usually considered file names or something else appropriate for the program.
+getopt() in action
+Let's walk through the getopt_demo project's code; I've split it up here to make it easier to talk about, but you can see it in its full glory in the downloadable source code (see Downloads).
+In Listing 4, you can see the system headers used by the demo program; standard fare with stdio.h for standard I/O function prototypes, stdlib.h for EXIT_SUCCESS and EXIT_FAILURE, and unistd.h for getopt().
+Listing 4. System headers
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+Listing 5 shows the globalArgs structure I've created to store the command-line options in a sensible manner. Since it's a global variable, code anywhere in the program can access these variables to see whether to create a keyword index, which language to generate, and so on. It's a good idea for code outside of the main() function to treat this structure as a constant, read-only storage area, since any part of the program could depend on its contents.
+There's one variable per command-line option, with extra variables to store the output file name, a pointer to the list of input files, and the number of input files.
+Listing 5. Global argument storage and option string
+struct globalArgs_t {
+    int noIndex;                /* -I option */
+    char *langCode;             /* -l option */
+    const char *outFileName;    /* -o option */
+    FILE *outFile;
+    int verbosity;              /* -v option */
+    char **inputFiles;          /* input files */
+    int numInputFiles;          /* # of input files */
+} globalArgs;
+
+static const char *optString = "Il:o:vh?";
+The option string, optString, tells getopt() which options you can process, and which options require an argument. If other options are encountered during processing, getopt() displays an error message, and the program exits after displaying a usage message.
+Listing 6 contains some small stubs for the usage message function and document conversion function referenced from main(), below. Feel free to make these do something more useful than nothing!
+Listing 6. Stubs
+void display_usage( void )
+{
+    puts( "doc2html - convert documents to HTML" );
+    /* ... */
+    exit( EXIT_FAILURE );
+}
+
+void convert_document( void )
+{
+    /* ... */
+}
+Finally, with Listing 7, you've made it to the main() function. Like good developers, you need to initialize the globalArgs structure before you begin processing the command-line arguments. In your programs, you can use this to set up reasonable defaults for your options in one place, which will make it easier to tweak later if more reasonable defaults come to light.
+Listing 7. Initialization
+int main( int argc, char *argv[] )
+{
+    int opt = 0;
+    
+    /* Initialize globalArgs before we get to work. */
+    globalArgs.noIndex = 0;     /* false */
+    globalArgs.langCode = NULL;
+    globalArgs.outFileName = NULL;
+    globalArgs.outFile = NULL;
+    globalArgs.verbosity = 0;
+    globalArgs.inputFiles = NULL;
+    globalArgs.numInputFiles = 0;
+The while loop and switch statement in Listing 8 are the meat of the command-line processing for this program. Whenever getopt() discovers an option, the switch statement decides which option was found, and you take note of that in the globalArgs structure. When getopt() finally returns -1, you're done processing options, and the remaining arguments are your input files.
+Listing 8. Processing argc/argv with getopt()
+opt = getopt( argc, argv, optString );
+    while( opt != -1 ) {
+        switch( opt ) {
+            case 'I':
+                globalArgs.noIndex = 1; /* true */
+                break;
+                
+            case 'l':
+                globalArgs.langCode = optarg;
+                break;
+                
+            case 'o':
+                globalArgs.outFileName = optarg;
+                break;
+                
+            case 'v':
+                globalArgs.verbosity++;
+                break;
+                
+            case 'h':   /* fall-through is intentional */
+            case '?':
+                display_usage();
+                break;
+                
+            default:
+                /* You won't actually get here. */
+                break;
+        }
+        
+        opt = getopt( argc, argv, optString );
+    }
+    
+    globalArgs.inputFiles = argv + optind;
+    globalArgs.numInputFiles = argc - optind;
+Now that you're done collecting arguments and options, you can do whatever it is the program was built for (in this case, converting documents), and exit (Listing 9).
+Listing 9. Go to work
+convert_document();
+    
+    return EXIT_SUCCESS;
+}
+There, done. Perfect. You can stop reading now. Unless you want to bring your program up to the standards of the late '90s and support long options, popularized in GNU applications.
+Complex command-line processing: getopt_long()
+At some point in the 1990s (if memory serves), UNIX applications started supporting long options, a pair of dashes instead of the single dash used for normal short options, a descriptive option name, and possibly an argument connected to the option with an equal sign.
+Luckily, you can add support for long options to your program by using getopt_long(). As you might have already guessed, getopt_long() is a version of getopt() that supports long options in addition to the short options.
+The getopt_long() function takes additional arguments, one of which is a pointer to an array of struct option objects. This structure is straightforward, as you can see from Listing 10.
+Listing 10. option for getopt_long()
+struct option {
+    char *name;
+    int has_arg;
+    int *flag;
+    int val;
+};
+The name member is a pointer to the long option's name without the double dashes. The has_arg member is set to one of no_argument, optional_argument, or required_argument (all defined in getopt.h) to indicate whether this option has an argument or not. If the flag member isn't set to NULL, the int it points to will be filled with the value in the val member when this option is encountered during processing. If the flag member is NULL, the value in val is returned by getopt_long() when it encounters this option; by setting val to the option's short argument, getopt_long() can be used without adding any additional code -- the existing getopt() that handles while loop and switch automatically handles this option.
+Already this is more flexible, since options can now have optional arguments. More importantly, it's easy to drop into your existing code with very little work.
+Let's see how using getopt_long() changes the sample program (the getopt_long_demo project can be found in Downloads).
+Using getopt_long()
+Since the getopt_long_demo is nearly the same as the getopt_demo code you already looked at, I'll just take you through the changed bits. Because you've got more flexibility now, you'll also add support for a --randomize option, without a corresponding short option.
+The getopt_long() function resides in the getopt.h header instead of unistd.h, so you'll need to include that (see Listing 11). I've also included string.h, because you'll use strcmp() later to help figure out which long argument you're dealing with.
+Listing 11. Additional headers
+#include <getopt.h>
+#include <string.h>
+You've added a flag (see Listing 12) to the globalArgs for the --randomize option, and created the longOpts array to hold information about the long options supported by this program. Except for --randomize, all of the arguments correspond to existing short options (--no-index is the same as -I, for example). By including their short option equivalent as the last entry in the option structure, you can handle the equivalent long options without adding any extra code to the program.
+Listing 12. Expanded arguments
+struct globalArgs_t {
+    int noIndex;                /* -I option */
+    char *langCode;             /* -l option */
+    const char *outFileName;    /* -o option */
+    FILE *outFile;
+    int verbosity;              /* -v option */
+    char **inputFiles;          /* input files */
+    int numInputFiles;          /* # of input files */
+    int randomized;             /* --randomize option */
+} globalArgs;
+
+static const char *optString = "Il:o:vh?";
+
+static const struct option longOpts[] = {
+    { "no-index", no_argument, NULL, 'I' },
+    { "language", required_argument, NULL, 'l' },
+    { "output", required_argument, NULL, 'o' },
+    { "verbose", no_argument, NULL, 'v' },
+    { "randomize", no_argument, NULL, 0 },
+    { "help", no_argument, NULL, 'h' },
+    { NULL, no_argument, NULL, 0 }
+};
+Listing 13 changes the getop() calls to getopt_long(), which takes the longOpts array and an int pointer (longIndex) in addition to getopt()'s arguments. The integer pointed to by longIndex will be set to the index of the currently found long option when getopt_long() returns 0.
+Listing 13. New and improved option handling
+opt = getopt_long( argc, argv, optString, longOpts, &longIndex );
+    while( opt != -1 ) {
+        switch( opt ) {
+            case 'I':
+                globalArgs.noIndex = 1; /* true */
+                break;
+                
+            case 'l':
+                globalArgs.langCode = optarg;
+                break;
+                
+            case 'o':
+                globalArgs.outFileName = optarg;
+                break;
+                
+            case 'v':
+                globalArgs.verbosity++;
+                break;
+                
+            case 'h':   /* fall-through is intentional */
+            case '?':
+                display_usage();
+                break;
+
+            case 0:     /* long option without a short arg */
+                if( strcmp( "randomize", longOpts[longIndex].name ) == 0 ) {
+                    globalArgs.randomized = 1;
+                }
+                break;
+                
+            default:
+                /* You won't actually get here. */
+                break;
+        }
+        
+        opt = getopt_long( argc, argv, optString, longOpts, amp;longIndex );
+    }
+I've also added a case for 0 where you can handle any long options that don't map to existing short options. In this case, you have only one long option, but the code still uses strcmp() to make sure it's the one you're expecting.
+That's all there is to it; the program now supports more verbose (and more casual user-friendly) long options.
+Summary
+UNIX users have always depended on command-line arguments to modify the behavior of programs, especially utilities designed to be used as part of the collection of small tools that is the UNIX shell environment. Programs need to be able to handle options and arguments quickly, and without wasting a lot of the developer's time. After all, few programs are designed to simply process command-line arguments, and the developer would rather be working on whatever the program really does.
+The getopt() function is a standard library call that lets you loop over a program's command-line arguments and detect options (with or without arguments attached to them) easily using a straightforward while/switch idiom. Its cousin, getopt_long(), lets you handle the more descriptive long options with almost no additional work, which is something that makes developers very happy.
+Now that you've seen how to easily handle command-line options, you can concentrate on improving your program's command line by adding support for long options, and by adding any additional options you might have been putting off because you didn't want to add additional command-line option handling to your program.
+Don't forget to document all of your options and arguments somewhere, and to provide a built-in help function of some sort to help remind forgetful users.
+Back to top
+Downloads
+Description	Name	Size
+Sample getopt() program	au-getopt_demo.zip	23KB
+Sample getopt_long() program	au-getopt_long_demo.zip	24KB
+Resources
+Learn
+"What is Eclipse, and how do I use it?" (developerWorks, November 2001): For a Q & A all about Eclipse, be sure to read this article.
+Get started now with Eclipse: Download and get started with Eclipse.
+"C/C++ development with the Eclipse Platform" (developerWorks, March 2006): Learn how to use C++ with Eclipse.
+Network services: Read about legacy design versus threaded design.
+"Build UNIX software with Eclipse" (developerWorks, March 2006): Read this article for a primer on building UNIX software with Eclipse.
+The AIX and UNIX® developerWorks zone provides a wealth of information relating to all aspects of AIX systems administration and expanding your UNIX skills.
+developerWorks technical events and webcasts: Stay current with developerWorks technical events and webcasts.
+AIX 5L Wiki: Visit this collaborative environment for technical information related to AIX.
+Architecture area on developerWorks: Get the resources you need to advance your skills in the architecture arena.
+Podcasts: Tune in and catch up with IBM technical experts.
+Browse the technology bookstore for books on these and other technical topics.
+Get products and technologies
+IBM trial software: Build your next development project with software for download directly from developerWorks.
+Discuss
+Participate in the AIX and UNIX forums:
+AIX 5L -- technical forum
+AIX for Developers Forum
+Cluster Systems Management
+IBM Support Assistant
+Performance Tools -- technical
+Virtualization -- technical
+More AIX and UNIX forums
+Comments
+Sign in or register to leave a comment.
+
+Add comment:
+Note: HTML elements are not supported within comments.
+
+
+Notify me when a comment is added1000 characters leftSubmit
+ Total comments (4)
+Careful: getopt_long() returns '?' when it encounters an argument it doesn't know. You don't need to specify it in the optString; just account for it in the switch().
+
+When getopt_long doesn't find a <b>required</b> argument it returns ':' (a colon).
+Posted by Wainstead on 22 June 2011Report abuse
+Very clear !
+Posted by peterpan0201 on 10 April 2011Report abuse
+getopt_long() is defined in if your OS has it built in; if not, you can install GNU's libc (http://mirror.csclub.uwaterloo.ca/gnu/glibc/) to get it, I think.
+
+getopt_long() exists on Linux, FreeBSD, and OpenBSD, plus any system with the right libraries installed.
+
+getopt() is a POSIX standard function, but getopt_long() isn't.
+
+<ul class="jive-dash">
+<li>chrish</li>
+</ul>
+Posted by chrish on 02 July 2010Report abuse
+This is a great article, however, there's no header file nor library on any of my systems that support getopt_long. How are folks able to actually get any of this to work?
+Posted by blentzblentzblentz on 02 July 2010Report abuse
+Dig deeper into AIX and Unix on developerWorks
+Overview
+New to AIX and Unix
+Technical library (tutorials and more)
+Forums
+Community
+Downloads and products
+Open source projects
+Events
+
+Bluemix Developers Community
+Get samples, articles, product docs, and community resources to help build, deploy, and manage your cloud apps.
+
+developerWorks Weekly Newsletter
+Keep up with the best and latest technical info to help you tackle your development challenges.
+
+DevOps Services
+Software development in the cloud. Register today to create a project.
+
+IBM evaluation software
+Evaluate IBM software and solutions, and transform challenges into opportunities.
+Back to top
+About
+Help
+Contact us
+Submit content
+Feeds
+Newsletters
+Follow
+Like
+Report abuse
+Terms of use
+Third party notice
+IBM privacy
+IBM accessibility
+Faculty
+Students
+Business Partners
+Select a language:
+English
+??
+???
+Ðóññêèé
+Portugues (Brasil)
+Espanol
+Vi?t
+IBM®
